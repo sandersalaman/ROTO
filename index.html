@@ -89,10 +89,6 @@
     text-transform: none; color: var(--dim); font-weight: 500;
     gap: 16px;
   }
-  .brand {
-    font-size: 14px; font-weight: 700; color: var(--ink);
-    letter-spacing: -0.01em;
-  }
   .tab-bar {
     display: flex; border: 1px solid var(--line);
     border-radius: var(--r); overflow: hidden;
@@ -118,7 +114,68 @@
     flex-shrink: 0;
   }
   .theme-btn:hover { background: var(--bg-hover); color: var(--ink); }
-  .page[hidden] { display: none; }
+  .nav-right { display: flex; gap: 8px; align-items: center; }
+
+  /* ───── page stack: both pages share a single grid cell so switching causes no reflow ───── */
+  .page-stack { display: grid; }
+  .page { grid-area: 1 / 1; visibility: hidden; pointer-events: none; }
+  .page.active { visibility: visible; pointer-events: auto; }
+
+  /* ───── feedback modal ───── */
+  .fb-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(15,15,15,0.32);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 2000;
+  }
+  [data-theme="dark"] .fb-backdrop { background: rgba(0,0,0,0.55); }
+  .fb-backdrop[hidden] { display: none; }
+  .fb-card {
+    width: min(440px, 92vw);
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(15,15,15,0.18);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .fb-card .ch {
+    background: var(--bg-2);
+    padding: 10px 16px;
+    font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase;
+    color: var(--dim); font-weight: 600;
+    border-bottom: 1px solid var(--line);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .fb-card textarea {
+    width: 100%; min-height: 120px;
+    background: var(--bg); color: var(--ink);
+    border: none; resize: vertical;
+    padding: 14px 16px;
+    font-family: var(--mono); font-size: 14px; font-weight: 500;
+    outline: none;
+  }
+  .fb-card textarea::placeholder { color: var(--mute); }
+  .fb-actions {
+    display: flex; justify-content: flex-end; gap: 8px;
+    padding: 10px 14px; border-top: 1px solid var(--line);
+    background: var(--bg-2);
+  }
+  .fb-actions button {
+    background: transparent; border: 1px solid var(--line);
+    color: var(--ink); font-family: var(--mono);
+    font-size: 13px; padding: 6px 14px;
+    cursor: pointer; border-radius: var(--r);
+    transition: background 80ms ease; font-weight: 500;
+  }
+  .fb-actions button:hover { background: var(--bg-hover); }
+  .fb-actions button.primary {
+    background: rgba(68,131,97,0.88); color: #fff; border-color: transparent; font-weight: 600;
+  }
+  .fb-actions button.primary:hover { background: rgba(68,131,97,0.76); }
+  .fb-actions button.primary:disabled { background: var(--bg-hover); color: var(--mute); cursor: not-allowed; }
+  [data-theme="dark"] .fb-actions button.primary { background: rgba(90,170,128,0.18); color: var(--h-green); border: 1px solid rgba(90,170,128,0.3); }
+  [data-theme="dark"] .fb-actions button.primary:hover { background: rgba(90,170,128,0.26); }
 
   /* ───── main grid ───── */
   .layout { display: grid; grid-template-columns: 1fr 380px; gap: 28px; align-items: start; }
@@ -174,6 +231,7 @@
   [data-theme="dark"] .drop-overlay { background: rgba(25,25,25,0.92); }
   .drop-overlay.hidden { display: none; }
   body.over .drop-overlay { background: var(--blue-bg); border-color: var(--blue); }
+  .drop-overlay .dvd { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
   .drop-overlay .arrow { width: 64px; height: 64px; border: 1px solid var(--line); border-radius: var(--r); color: var(--dim); display: flex; align-items: center; justify-content: center; font-size: 28px; }
   .drop-overlay .t { font-size: 15px; letter-spacing: 0; text-transform: none; font-weight: 600; color: var(--ink); }
   .drop-overlay .h { font-size: 12px; letter-spacing: 0; color: var(--dim); text-transform: none; text-align: center; line-height: 1.6; }
@@ -317,14 +375,12 @@
   .status.err { border-color: var(--red); color: var(--red); }
   .status .b { color: var(--h-orange); margin-right: 8px; }
 
-  /* ─── Video → A4 page overrides ─── */
-  [data-page="video"] .layout { grid-template-columns: 1fr 360px; }
+  /* ─── Video → A4 page overrides (only what's truly page-specific) ─── */
   [data-page="video"] .knob .dial { width: 110px; height: 110px; }
   [data-page="video"] .knob .val { min-width: 64px; }
   [data-page="video"] .knob-row { gap: 16px; }
   [data-page="video"] .source-bar .v { max-width: none; overflow: visible; text-overflow: clip; white-space: normal; }
   [data-page="video"] .drop-overlay { background: transparent; pointer-events: none; }
-  [data-page="video"] .drop-overlay .dvd { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
 
   /* paper preview (video-only) */
   .paper-stage {
@@ -389,18 +445,22 @@
 <div class="wrap">
 
   <div class="nav-row">
-    <div class="brand">RotoDap</div>
     <div class="tab-bar" role="tablist">
       <button class="tab active" data-tab="image" role="tab">Image → Frames</button>
       <button class="tab" data-tab="video" role="tab">Video → A4</button>
     </div>
-    <button class="theme-btn" id="themeToggle" title="Toggle theme" aria-label="Toggle theme">☀</button>
+    <div class="nav-right">
+      <button class="theme-btn" id="feedbackBtn" title="Send feedback" aria-label="Send feedback">✎</button>
+      <button class="theme-btn" id="themeToggle" title="Toggle theme" aria-label="Toggle theme">☀</button>
+    </div>
   </div>
+
+  <div class="page-stack">
 
   <!-- ════════════════════════════════════════════════ -->
   <!--  PAGE: Image → Frames                            -->
   <!-- ════════════════════════════════════════════════ -->
-  <section class="page" data-page="image">
+  <section class="page active" data-page="image">
 
     <div class="sect-head">
       <span class="pill">Image <span class="sep">→</span> Frames</span>
@@ -558,7 +618,7 @@
   <!-- ════════════════════════════════════════════════ -->
   <!--  PAGE: Video → A4                                -->
   <!-- ════════════════════════════════════════════════ -->
-  <section class="page" data-page="video" hidden>
+  <section class="page" data-page="video">
 
     <div class="sect-head">
       <span class="pill">Video <span class="sep">→</span> A4</span>
@@ -667,6 +727,20 @@
 
   </section>
 
+  </div><!-- /.page-stack -->
+
+</div>
+
+<!-- Feedback modal -->
+<div class="fb-backdrop" id="feedbackModal" hidden>
+  <div class="fb-card">
+    <div class="ch"><span>Feedback</span><span id="fbCount" style="font-weight:500;color:var(--mute);">0 saved</span></div>
+    <textarea id="feedbackText" placeholder="What's on your mind? Bugs, ideas, anything."></textarea>
+    <div class="fb-actions">
+      <button id="feedbackCancel">Cancel</button>
+      <button class="primary" id="feedbackSend" disabled>Save</button>
+    </div>
+  </div>
 </div>
 
 <!-- Shared offscreen elements -->
@@ -684,7 +758,7 @@
   const pages = document.querySelectorAll('.page');
   function activate(key) {
     tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === key));
-    pages.forEach(p => p.hidden = p.dataset.page !== key);
+    pages.forEach(p => p.classList.toggle('active', p.dataset.page === key));
     localStorage.setItem('rotodap-tab', key);
     window.__rotoActive = key;
   }
@@ -1680,6 +1754,77 @@ function setupKnob(id, opts) {
     updateIcon();
   });
   updateIcon();
+})();
+</script>
+
+<!-- ────────────────────────────────────────────────── -->
+<!--  Feedback modal — saves to localStorage           -->
+<!--  Read back with: JSON.parse(localStorage.getItem('rotodap-feedback')) -->
+<!--  Or download all: see _dumpFeedback() in console  -->
+<!-- ────────────────────────────────────────────────── -->
+<script>
+(function() {
+  const KEY = 'rotodap-feedback';
+  const openBtn = document.getElementById('feedbackBtn');
+  const modal = document.getElementById('feedbackModal');
+  const ta = document.getElementById('feedbackText');
+  const sendBtn = document.getElementById('feedbackSend');
+  const cancelBtn = document.getElementById('feedbackCancel');
+  const countEl = document.getElementById('fbCount');
+  const toast = document.getElementById('statusMsg');
+
+  function load() { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch { return []; } }
+  function save(arr) { localStorage.setItem(KEY, JSON.stringify(arr)); }
+  function refreshCount() { countEl.textContent = load().length + ' saved'; }
+
+  function open() {
+    refreshCount();
+    modal.hidden = false;
+    setTimeout(() => ta.focus(), 30);
+  }
+  function close() {
+    modal.hidden = true;
+    ta.value = '';
+    sendBtn.disabled = true;
+  }
+
+  openBtn.addEventListener('click', open);
+  cancelBtn.addEventListener('click', close);
+  modal.addEventListener('click', e => { if (e.target === modal) close(); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !modal.hidden) close();
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && !modal.hidden) sendBtn.click();
+  });
+  ta.addEventListener('input', () => { sendBtn.disabled = !ta.value.trim(); });
+
+  sendBtn.addEventListener('click', () => {
+    const text = ta.value.trim();
+    if (!text) return;
+    const log = load();
+    log.push({ ts: new Date().toISOString(), tab: window.__rotoActive, text });
+    save(log);
+    close();
+    if (toast) {
+      toast.innerHTML = '<span class="b">>>></span>Feedback saved · ' + log.length + ' total';
+      toast.classList.remove('err');
+      toast.classList.add('on');
+      setTimeout(() => toast.classList.remove('on'), 2500);
+    }
+  });
+
+  // expose console helper for dumping/clearing
+  window._dumpFeedback = () => {
+    const log = load();
+    console.table(log);
+    const blob = new Blob([JSON.stringify(log, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'rotodap-feedback.json';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 500);
+    return log.length + ' entries downloaded';
+  };
+  window._clearFeedback = () => { localStorage.removeItem(KEY); return 'cleared'; };
 })();
 </script>
 
